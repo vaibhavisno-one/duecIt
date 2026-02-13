@@ -15,7 +15,7 @@ const startMatch = asyncHandler(async (req, res, next) => {
     const userId = req.user._id
 
 
-    const problem = await getRandomProblem()
+    const problem = await getRandomProblem("easy")
 
     if (!problem) {
         throw new ApiError(400, "Unable to get problem")

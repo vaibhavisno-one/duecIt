@@ -37,7 +37,7 @@ const submitCode = asyncHandler(async (req, res) => {
         throw new ApiError(400, "user is not part of match")
     }
 
-    if (match.status != ("active")) {
+    if (match.status !== ("active")) {
         throw new ApiError(400, "match is not active")
     }
 
@@ -56,13 +56,17 @@ const submitCode = asyncHandler(async (req, res) => {
         matchId,
         userId,
         code,
-        ...result
+        ...result,
+        problemId: match.problemId
     })
 
+    match.submissions.push(submission._id);
 
     // end match
     match.status = "finished"
     match.endTime = new Date()
+    // v1: single-player or first-submit-wins
+
     match.winner = userId;
 
     await match.save()
@@ -73,3 +77,5 @@ const submitCode = asyncHandler(async (req, res) => {
 
 
 })
+
+export { submitCode }

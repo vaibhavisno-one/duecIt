@@ -41,6 +41,29 @@ app.use(cookieParser())
 
 
 
+//ROUTES----------------------------
+
+//USER ROUTES
+import userRouter from "./routes/user.routes.js";
+
+app.use("/api/user", userRouter)
+
+//MATCH ROUTES
+import matchRouter from "./routes/match.routes.js";
+
+app.use("/api/match", matchRouter)
+
+//SUBMISSION ROUTES
+import submissionRouter from "./routes/submission.routes.js";
+
+app.use("/api/submission", submissionRouter)
+
+
+
+
+
+
+
 // Import ApiError for error handling
 import { ApiError } from "./utils/ApiError.js";
 

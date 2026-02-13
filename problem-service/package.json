@@ -5,8 +5,8 @@
   "description": "Problem Service REST API for competitive coding platform",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+   "start": "node src/app.js",
+    "dev": "nodemon src/app.js", 
     "seed": "node src/seed/seedData.js"
   },
   "dependencies": {
