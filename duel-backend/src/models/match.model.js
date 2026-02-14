@@ -17,7 +17,7 @@ const matchSchema = new Schema({
     status: { 
         type: String,
         enum: ['waiting','active','finished'],
-        default: 'active'
+        default: 'waiting'
  
     },
     winner:{
