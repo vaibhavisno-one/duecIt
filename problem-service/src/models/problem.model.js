@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose, {Schema} from 'mongoose';
 
-const sampleSchema = new mongoose.Schema({
+const sampleSchema = new Schema({
   input: {
     type: String,
     required: true
@@ -11,7 +11,7 @@ const sampleSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
-const problemSchema = new mongoose.Schema({
+const problemSchema = new Schema({
   problemId: {
     type: String,
     required: true,

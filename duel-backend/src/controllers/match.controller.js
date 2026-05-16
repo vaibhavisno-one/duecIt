@@ -2,46 +2,62 @@ import { ApiError } from "../utils/ApiError.js"
 import { asyncHandler } from "../utils/AsyncHandler.js"
 import { Match } from "../models/match.model.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { getRandomProblem } from "../services/problem-service.js"
+import { joinQueue, leaveQueue, getQueueStatus } from "../services/matchmaking.service.js"
 
-
-// startMatch
+// joinMatchQueue
+// leaveMatchQueue
+// getQueueStatus
 // getMatchById
 // endMatch
 
+const joinMatchQueue = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const { difficulty } = req.body;
 
-const startMatch = asyncHandler(async (req, res, next) => {
-
-    const userId = req.user._id
-
-
-    const problem = await getRandomProblem("easy")
-
-    if (!problem) {
-        throw new ApiError(400, "Unable to get problem")
+    if (!difficulty || !['easy', 'medium', 'hard'].includes(difficulty)) {
+        throw new ApiError(400, "Invalid difficulty");
     }
 
-
-
-    const match = await Match.create({
-        playerA: userId,
-        playerB: userId,
-        problemId: problem.id,
-        status: "active",
-        startTime: Date.now(),
-    })
+    const queueEntry = await joinQueue(userId, difficulty);
 
     return res.status(200).json(
-        new ApiResponse(200, match, "Match started successfully")
-    )
+        new ApiResponse(200, queueEntry, "Joined matchmaking queue")
+    );
+});
 
+const leaveMatchQueue = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
 
-})
+    const removed = leaveQueue(userId);
 
-//getMatchById
+    if (!removed) {
+        throw new ApiError(400, "Not in queue");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, null, "Left matchmaking queue")
+    );
+});
+
+const getQueue = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    const status = getQueueStatus(userId);
+
+    if (!status) {
+        throw new ApiError(404, "Not in queue");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, status, "Queue status fetched")
+    );
+});
 
 const getMatchById = asyncHandler(async (req, res) => {
-    const match = await Match.findById(req.params.id);
+    const match = await Match.findById(req.params.id)
+        .populate('playerA', 'username rating')
+        .populate('playerB', 'username rating')
+        .populate('submissions');
 
     if (!match) {
         throw new ApiError(404, "Match not found");
@@ -50,19 +66,16 @@ const getMatchById = asyncHandler(async (req, res) => {
     const userId = req.user._id.toString();
 
     if (
-        match.playerA.toString() !== userId &&
-        match.playerB.toString() !== userId
+        match.playerA._id.toString() !== userId &&
+        match.playerB._id.toString() !== userId
     ) {
-        throw new ApiError(403, "Not authorized to view this match");
+        throw new ApiError(403, "Not authorized");
     }
 
     return res.status(200).json(
-        new ApiResponse(200, match, "Match fetched successfully")
+        new ApiResponse(200, match, "Match fetched")
     );
 });
-
-
-//endMatch
 
 const endMatch = asyncHandler(async (req, res) => {
     const match = await Match.findById(req.params.id);
@@ -77,7 +90,7 @@ const endMatch = asyncHandler(async (req, res) => {
         match.playerA.toString() !== userId &&
         match.playerB.toString() !== userId
     ) {
-        throw new ApiError(403, "Not authorized to end this match");
+        throw new ApiError(403, "Not authorized");
     }
 
     if (match.status === "finished") {
@@ -89,8 +102,8 @@ const endMatch = asyncHandler(async (req, res) => {
     await match.save();
 
     return res.status(200).json(
-        new ApiResponse(200, match, "Match ended successfully")
+        new ApiResponse(200, match, "Match ended")
     );
 });
 
-export { startMatch, getMatchById, endMatch }
+export { joinMatchQueue, leaveMatchQueue, getQueue, getMatchById, endMatch }

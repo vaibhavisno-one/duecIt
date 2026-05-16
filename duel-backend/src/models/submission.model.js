@@ -1,5 +1,18 @@
 import mongoose, { Schema } from "mongoose";
 
+const testResultSchema = new Schema({
+    passed: {
+        type: Boolean,
+        required: true
+    },
+    input: String,
+    expectedOutput: String,
+    actualOutput: String,
+    executionTime: Number,
+    memory: Number,
+    error: String
+}, { _id: false });
+
 const submissionSchema = new Schema({
     matchId: {
         type: Schema.Types.ObjectId,
@@ -15,6 +28,15 @@ const submissionSchema = new Schema({
         type: String,
         required: true
     },
+    language: {
+        type: String,
+        enum: ['javascript', 'python', 'cpp', 'java', 'c'],
+        default: "javascript"
+    },
+    problemId: {
+        type: String,
+        required: true
+    },
     passedCount: {
         type: Number,
         default: 0
@@ -23,27 +45,25 @@ const submissionSchema = new Schema({
         type: Number,
         default: 0
     },
-    finalScore: {
-        type: Number,
-        default: 0
-    },
-    problemId: {
-        type: String,
-        required: true
-    },
-    language: {
-        type: String,
-        default: "javascript"
-    },
     executionTime: {
         type: Number,
         default: 0
     },
+    memory: {
+        type: Number,
+        default: 0
+    },
+    finalScore: {
+        type: Number,
+        default: 0
+    },
+    testResults: [testResultSchema],
     submittedAt: {
         type: Date,
         default: Date.now
     }
-
-
+}, {
+    timestamps: true
 })
+
 export const Submission = mongoose.model("Submission", submissionSchema)

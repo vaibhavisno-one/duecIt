@@ -1,6 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose,{Schema} from 'mongoose';
 
-const testCaseSchema = new mongoose.Schema({
+
+const testCaseSchema = new Schema({
   problemId: {
     type: String,
     required: true,

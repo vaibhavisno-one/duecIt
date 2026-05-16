@@ -1,15 +1,17 @@
 import 'dotenv/config'
-import app from './app.js'
+import { httpServer } from './app.js'
 import connectDB from "./db/index.js";
+import { initializeSocket } from './services/socket.service.js';
 
-connectDB() //call other fucntion and then initialize it here
+connectDB()
     .then(() => {
-        app.listen(process.env.PORT || 8000, () => {
-            console.log(`server is running on port ${process.env.PORT}`); // Uses that connectDB() function to actually open the door and start the app if it unlocks
+        initializeSocket(httpServer);
+        
+        httpServer.listen(process.env.PORT || 8000, () => {
+            console.log(`🚀 Server running on port ${process.env.PORT}`);
+            console.log(`⚡ WebSocket ready`);
         })
     })
     .catch((err) => {
-        console.log('MONGODB CONNECTION FAILED  ', err);
-
+        console.log('MONGODB CONNECTION FAILED', err);
     })
-

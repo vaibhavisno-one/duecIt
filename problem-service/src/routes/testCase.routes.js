@@ -4,6 +4,6 @@ import serviceAuth from '../middleware/serviceAuth.js';
 
 const router = express.Router();
 
-router.post('/testcases/:problemId', serviceAuth, getTestCases);
+router.get('/testcases/:problemId', serviceAuth, getTestCases);
 
 export default router;
