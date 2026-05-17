@@ -1,25 +1,22 @@
 import axios from 'axios';
 
-const JUDGE0_URL = process.env.JUDGE0_URL || 'https://judge0-ce.p.rapidapi.com';
-const JUDGE0_KEY = process.env.JUDGE0_API_KEY;
+const PISTON_URL = 'https://emkc.org/api/v2/piston';
 
-const LANGUAGE_IDS = {
-  javascript: 63,
-  python: 71,
-  cpp: 54,
-  java: 62,
-  c: 50
+const LANGUAGE_MAP = {
+  javascript: 'javascript',
+  python: 'python',
+  cpp: 'cpp',
+  java: 'java',
+  c: 'c'
 };
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 export const executeCode = async (code, language, testCases) => {
-  const languageId = LANGUAGE_IDS[language] || 63;
+  const pistonLang = LANGUAGE_MAP[language] || 'javascript';
   
   const results = [];
   
   for (const testCase of testCases) {
-    const result = await runSingleTest(code, languageId, testCase);
+    const result = await runSingleTest(code, pistonLang, testCase);
     results.push(result);
   }
 
@@ -40,32 +37,38 @@ export const executeCode = async (code, language, testCases) => {
   };
 };
 
-const runSingleTest = async (code, languageId, testCase) => {
+const runSingleTest = async (code, language, testCase) => {
   try {
-    const submission = await createSubmission(code, languageId, testCase.input);
+    const startTime = Date.now();
     
-    const token = submission.token;
-    
-    let result = await getSubmissionResult(token);
-    
-    let attempts = 0;
-    while (result.status.id <= 2 && attempts < 10) {
-      await sleep(500);
-      result = await getSubmissionResult(token);
-      attempts++;
-    }
+    const response = await axios.post(`${PISTON_URL}/execute`, {
+      language: language,
+      version: '*',
+      files: [{
+        content: code
+      }],
+      stdin: testCase.input,
+      compile_timeout: 10000,
+      run_timeout: 3000,
+      compile_memory_limit: -1,
+      run_memory_limit: -1
+    });
 
-    const passed = result.stdout?.trim() === testCase.expectedOutput.trim();
+    const executionTime = Date.now() - startTime;
+
+    const output = response.data.run.stdout || '';
+    const error = response.data.run.stderr || response.data.compile?.stderr || '';
+    
+    const passed = output.trim() === testCase.expectedOutput.trim();
     
     return {
       passed,
       input: testCase.input,
       expectedOutput: testCase.expectedOutput,
-      actualOutput: result.stdout?.trim() || '',
-      executionTime: parseFloat(result.time || 0) * 1000,
-      memory: parseInt(result.memory || 0),
-      statusId: result.status.id,
-      error: result.stderr || result.compile_output || null
+      actualOutput: output.trim(),
+      executionTime,
+      memory: 0,
+      error: error || null
     };
   } catch (error) {
     console.error('Test execution error:', error);
@@ -81,44 +84,6 @@ const runSingleTest = async (code, languageId, testCase) => {
   }
 };
 
-const createSubmission = async (code, languageId, input) => {
-  const options = {
-    method: 'POST',
-    url: `${JUDGE0_URL}/submissions`,
-    params: { base64_encoded: 'false', wait: 'false' },
-    headers: {
-      'content-type': 'application/json',
-      'X-RapidAPI-Key': JUDGE0_KEY,
-      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-    },
-    data: {
-      language_id: languageId,
-      source_code: code,
-      stdin: input,
-      cpu_time_limit: 2,
-      memory_limit: 128000
-    }
-  };
-
-  const response = await axios.request(options);
-  return response.data;
-};
-
-const getSubmissionResult = async (token) => {
-  const options = {
-    method: 'GET',
-    url: `${JUDGE0_URL}/submissions/${token}`,
-    params: { base64_encoded: 'false' },
-    headers: {
-      'X-RapidAPI-Key': JUDGE0_KEY,
-      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-    }
-  };
-
-  const response = await axios.request(options);
-  return response.data;
-};
-
 const calculateScore = (passed, total, avgTime, maxMemory) => {
   const passRate = passed / total;
   
@@ -132,9 +97,8 @@ const calculateScore = (passed, total, avgTime, maxMemory) => {
 
 export const getTestCasesFromProblemService = async (problemId) => {
   try {
-    const response = await axios.post(
+    const response = await axios.get(
       `${process.env.PROBLEM_SERVICE_URL}/internal/testcases/${problemId}`,
-      {},
       {
         headers: {
           'x-service-key': process.env.PROBLEM_SERVICE_KEY
